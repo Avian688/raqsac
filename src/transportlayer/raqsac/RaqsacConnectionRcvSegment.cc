@@ -53,10 +53,12 @@ void RaqsacConnection::sendInitialWindow()
             raqsacseg->setPriorityValue(state->priorityValue);
             raqsacseg->setIsPullPacket(false);
             raqsacseg->setIsHeader(false);
+            raqsacseg->setWnd(state->IW);
             raqsacseg->addTag<CreationTimeTag>()->setCreationTime(simTime());
 
             EV_INFO << "Sending IW symbol " << raqsacseg->getESI() << endl;
             raqsacseg->setSynBit(true);
+            raqsacseg->setFinBit(false);
             raqsacseg->setNumSymbolsToSend(state->numSymbolsToSend);
             sendToIP(fp, raqsacseg);
         }
@@ -111,25 +113,28 @@ RaqsacEventCode RaqsacConnection::processSegment1stThru8th(Packet *packet, const
                 state->esi = encodingSymbolsList.size() - 1;
                 itt = encodingSymbolsList.begin();
                 std::advance(itt, state->esi);
-
-                const auto &raqsacseg = makeShared<RaqsacHeader>();
+                const auto &raqsacHeader = makeShared<RaqsacHeader>();
                 Packet *fp = itt->msg->dup();
                 state->esi++;
                 ++state->request_id;
-                raqsacseg->setESI(state->esi);
-                raqsacseg->setSBN(state->sbn);  //not used at the moment
-                raqsacseg->setPriorityValue(state->priorityValue);
-                raqsacseg->setIsPullPacket(false);
-                raqsacseg->setIsHeader(false);
-                raqsacseg->setNumSymbolsToSend(state->numSymbolsToSend);
-                raqsacseg->addTag<CreationTimeTag>()->setCreationTime(simTime());
-                EV_INFO << "Sending data packet - " << raqsacseg->getESI() << endl;
-                raqsacseg->setNumSymbolsToSend(state->numSymbolsToSend);
-                sendToIP(fp, raqsacseg);
+                raqsacHeader->setESI(state->esi);
+                raqsacHeader->setSBN(state->sbn);  //not used at the moment
+                raqsacHeader->setPriorityValue(state->priorityValue);
+                raqsacHeader->setIsPullPacket(false);
+                raqsacHeader->setIsHeader(false);
+                raqsacHeader->setNumSymbolsToSend(state->numSymbolsToSend);
+                raqsacHeader->addTag<CreationTimeTag>()->setCreationTime(simTime());
+                EV_INFO << "Sending data packet - " << raqsacHeader->getESI() << endl;
+                raqsacHeader->setNumSymbolsToSend(state->numSymbolsToSend);
+                sendToIP(fp, raqsacHeader);
             }
         }
         else if (requestsGap < 1) {
             EV_INFO << "Delayed pull arrived --> ignore it" << endl;
+        }
+        if(raqsacseg->getFinBit()){
+            state->connFinished = true;
+            //fsm.setState(RAQSAC_S_CLOSED);
         }
     }
     // (R.1)  at the receiver
@@ -139,8 +144,24 @@ RaqsacEventCode RaqsacConnection::processSegment1stThru8th(Packet *packet, const
     // header arrived at the receiver==> send new request with pacing (fixed pacing: MTU/1Gbps)
     else if (raqsacseg->isHeader() == true) { // 1 read, 2 write
         EV_INFO << "Header arrived at the receiver" << endl;
+        int prevCwnd = state->cwnd;
+        state->cwnd = state->cwnd/2;
+        state->sentPullsInWindow--;
+        state->ssthresh = state->cwnd;
+        if(state->cwnd == 0) state->cwnd = 1;
+        if(state->ssthresh == 0) state->ssthresh = 1;
+        emit(cwndSignal, state->cwnd);
+        state->receivedPacketsInWindow++;
         state->numRcvTrimmedHeader++;
-        addRequestToPullsQueue();
+        if(state->receivedPacketsInWindow >= state->cwnd){
+            state->receivedPacketsInWindow = 0;
+            if(state->receivedPacketsInWindow < 0){
+                state->receivedPacketsInWindow = 0;
+            }
+        }
+        if(state->sentPullsInWindow < state->cwnd){
+            addRequestToPullsQueue();
+        }
         if (state->numberReceivedPackets == 0 && state->connNotAddedYet == true) {
             getRaqsacMain()->requestCONNMap[getRaqsacMain()->connIndex] = this; // moh added
             state->connNotAddedYet = false;
@@ -158,6 +179,25 @@ RaqsacEventCode RaqsacConnection::processSegment1stThru8th(Packet *packet, const
         EV_INFO << "Data packet arrived at the receiver - seq num " << raqsacseg->getESI() << endl;
         state->esi++;
         state->numberReceivedPackets++;
+        state->receivedPacketsInWindow++;
+        state->sentPullsInWindow--;
+        if(state->sendPulls){
+            if(state->numberReceivedPackets + state->cwnd > state->numPacketsToGet){
+                state->sendPulls = false;
+            }
+            else if(state->cwnd < state->ssthresh) {
+                state->cwnd++;
+                addRequestToPullsQueue();
+            }
+            else if((state->receivedPacketsInWindow % state->cwnd) == 0){ //maybe do first?
+                //std::cout << state->cwnd << endl;
+                //std::cout << state->receivedPacketsInWindow << endl;
+                state->cwnd++;
+                state->receivedPacketsInWindow = 0;
+                addRequestToPullsQueue();
+            }
+        }
+        emit(cwndSignal, state->cwnd);
         int numberReceivedSymbols = state->numberReceivedPackets;
         int arrivedSymbolsInternalIndex = state->esi;
         int arrivedSymbolsActualIndex = raqsacseg->getESI();
@@ -181,29 +221,31 @@ RaqsacEventCode RaqsacConnection::processSegment1stThru8th(Packet *packet, const
             goto ll;
         }
         else {
-            if (numberReceivedSymbols < wantedSymbols && state->connFinished == false) {
-                if (arrivedSymbolsGap == 0 && numberReceivedSymbols <= (wantedSymbols - initialSentSymbols)) { //
-                    addRequestToPullsQueue();
-                }
-                else if (arrivedSymbolsGap > 0 && numberReceivedSymbols <= (wantedSymbols - initialSentSymbols)) { //
-                    int h = 0;
-                    addRequestToPullsQueue();
-                    arrivedSymbolsGap--;
-                    h++;
-                    state->esi = arrivedSymbolsActualIndex;
-                }
-                else if (arrivedSymbolsGap < 0) {
-                    --state->esi; // to be used in case of receiving a delayed symbol
-                    addRequestToPullsQueue();
-                }
-                else if (arrivedSymbolsGap > 0 && numberReceivedSymbols > (wantedSymbols - initialSentSymbols)) { //numberReceivedSymbols > numberSentRequests
-                    int h = 0;
-                    addRequestToPullsQueue();
-                    arrivedSymbolsGap--;
-                    h++;
-                    if (numberReceivedSymbols == wantedSymbols - 1)
-                        arrivedSymbolsGap = 0; // just send one request (this will ends the while loop, but we already sent a new reques) even the gap is larger than 1, as we received  this number of symbols: wantedSymbols-1
-                    state->esi = arrivedSymbolsActualIndex;
+            if(state->sendPulls){
+                if (numberReceivedSymbols < wantedSymbols && state->connFinished == false) {
+                    if (arrivedSymbolsGap == 0 && numberReceivedSymbols <= (wantedSymbols - initialSentSymbols)) { //
+                        addRequestToPullsQueue();
+                    }
+                    else if (arrivedSymbolsGap > 0 && numberReceivedSymbols <= (wantedSymbols - initialSentSymbols)) { //
+                        int h = 0;
+                        addRequestToPullsQueue();
+                        arrivedSymbolsGap--;
+                        h++;
+                        state->esi = arrivedSymbolsActualIndex;
+                    }
+                    else if (arrivedSymbolsGap < 0) {
+                        --state->esi; // to be used in case of receiving a delayed symbol
+                        addRequestToPullsQueue();
+                    }
+                    else if (arrivedSymbolsGap > 0 && numberReceivedSymbols > (wantedSymbols - initialSentSymbols)) { //numberReceivedSymbols > numberSentRequests
+                        int h = 0;
+                        addRequestToPullsQueue();
+                        arrivedSymbolsGap--;
+                        h++;
+                        if (numberReceivedSymbols == wantedSymbols - 1)
+                            arrivedSymbolsGap = 0; // just send one request (this will ends the while loop, but we already sent a new reques) even the gap is larger than 1, as we received  this number of symbols: wantedSymbols-1
+                        state->esi = arrivedSymbolsActualIndex;
+                    }
                 }
             }
             if (numberReceivedSymbols == 1 && state->connNotAddedYet == true) {
@@ -298,12 +340,17 @@ void RaqsacConnection::addRequestToPullsQueue()
     char msgname[16];
     sprintf(msgname, "PULL-%d", state->request_id);
     Packet *raqsacpack = new Packet(msgname);
-
     const auto &raqsacseg = makeShared<RaqsacHeader>();
     raqsacseg->setIsPullPacket(true);
     raqsacseg->setIsHeader(false);
     raqsacseg->setSynBit(false);
     raqsacseg->setPullSequenceNumber(state->request_id);
+    if(state->numberReceivedPackets >= state->numPacketsToGet + 2){
+        raqsacseg->setFinBit(true);
+    }
+    else{
+        raqsacseg->setFinBit(false);
+    }
     raqsacpack->insertAtFront(raqsacseg);
     pullQueue.insert(raqsacpack);
     EV_INFO << "Adding new request to the pull queue -- pullsQueue length now = " << pullQueue.getLength() << endl;
@@ -318,6 +365,7 @@ void RaqsacConnection::sendRequestFromPullsQueue()
 {
     EV_TRACE << "RaqsacConnection::sendRequestFromPullsQueue" << endl;
     if (pullQueue.getLength() > 0) {
+        state->sentPullsInWindow++;
         Packet *fp = check_and_cast<Packet*>(pullQueue.pop());
         auto raqsacseg = fp->removeAtFront<raqsac::RaqsacHeader>();
         EV << "a request has been popped from the Pull queue, the new queue length  = " << pullQueue.getLength() << " \n\n";
@@ -355,6 +403,7 @@ RaqsacEventCode RaqsacConnection::processSegmentInListen(Packet *packet, const P
         raqsacMain->updateSockPair(this, destAddr, srcAddr, raqsacseg->getDestPort(), raqsacseg->getSrcPort());
         // this is a receiver
         state->numPacketsToGet = raqsacseg->getNumSymbolsToSend();
+        state->cwnd = raqsacseg->getWnd();
         return RAQSAC_E_RCV_SYN; // this will take us to SYN_RCVD
     }
     EV_WARN << "Unexpected segment: dropping it" << endl;

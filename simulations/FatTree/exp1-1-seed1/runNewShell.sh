@@ -1,9 +1,9 @@
 echo " Running FatTree Traffic .... "
 find . -name "*.vec" -type f -delete|find . -name  "*.sca"  -type f -delete| find . -name "*.vci" -type f -delete | find . -name "*.csv" -type f -delete
-opp_run_release  -u Cmdenv -m -n ../..:../../../src:../../../../inet4/src:../../../../inet4/examples:../../../../inet4/tutorials:../../../../inet4/showcases -l ../../../src/scdp ../exp1-1-seed1.ini -c General -r "\$FatTreeSize==$(printf '%d' $1)  &&  \$numShortFlows==$(printf '%d' $2)"
+opp_run_release  -u Cmdenv -m -n ../..:../../../src:../../../../ecmp/src:../../../../inet4/src:../../../../inet4/examples:../../../../inet4/tutorials:../../../../inet4/showcases -l ../../../../ecmp/src/ecmp -l ../../../src/raqsac -l ../../../../inet4/src/INET  ../exp1-1-seed1.ini -c General -r "\$FatTreeSize==$(printf '%d' $1)  &&  \$numShortFlows==$(printf '%d' $2)"
 
 echo "Throughput"
-scavetool export -T s -f "module(**.app[*]) AND ("mohThroughputSCDP:last")"   -F CSV-S -o instThroughput.csv *.sca
+scavetool export -T s -f "module(**.app[*]) AND ("mohThroughput:last")"   -F CSV-S -o instThroughput.csv *.sca
 echo "   "
 echo "FCT"
 scavetool export -T s -f "module(**.app[*]) AND ("fctRecordv3:last")"   -F CSV-S -o fct.csv *.sca

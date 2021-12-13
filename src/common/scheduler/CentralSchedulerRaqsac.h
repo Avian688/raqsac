@@ -1,5 +1,5 @@
-#ifndef __INET_CentralScheduler_H
-#define __INET_CentralScheduler_H
+#ifndef __INET_CentralSchedulerRaqsac_H
+#define __INET_CentralSchedulerRaqsac_H
 #include <chrono>  // for high_resolution_clock
 
 #include <map>
@@ -17,7 +17,7 @@
 //#include "../rqtransportlayer/RaptorQ/RaptorQ.h"
 
 namespace inet {
-class INET_API CentralScheduler : public cSimpleModule, public ILifecycle
+class INET_API CentralSchedulerRaqsac : public cSimpleModule, public ILifecycle
 {
 //private:
 protected:
@@ -90,83 +90,12 @@ protected:
 
     bool oneToOne;
     unsigned int numReplica;
-    unsigned int numRunningMulticastGroups;
-    bool runMulticast;
     std::vector<int> tempNode;
     std::vector<int> tempCombination;
     std::list<std::vector<int> > combinations; // all possible combinations
     unsigned int numAllCombinations;
     std::set<int> alreadySelectedGroups; // contains index of the selected groups (set.insert does not add in order like in vector.pushback)
 
-    struct multicastGroup
-    {
-        unsigned int groupIndex;
-        unsigned int multicastSender;
-        std::set<int> multicastReceivers;
-    };
-
-    typedef std::list<multicastGroup> SelectedCombinations;
-    SelectedCombinations selectedCombinations;
-
-    struct multicastGroupPortNumbers
-    {
-        unsigned int groupIndex;
-        std::vector<int> multicastReceiversPortNumbers;
-    };
-
-    typedef std::list<multicastGroupPortNumbers> MulticastReceiversPortNumbers;
-    MulticastReceiversPortNumbers multicastReceiversPortNumbersList;
-
-    struct MulticastInfo
-    {
-        unsigned int multicastGroupIndex;
-        std::string routeName;
-        std::vector<std::string> destinations;
-    };
-    typedef std::list<MulticastInfo> MulticastInfoList;
-    MulticastInfoList multicastInfoList;
-
-    struct multicastGrTxRx
-    {
-        unsigned int groupIndex;
-        std::string multicastSender;
-        std::vector<std::string> multicastReceivers;
-    };
-
-    typedef std::list<multicastGrTxRx> MulticastGrTxRxList;
-    MulticastGrTxRxList multicastGrTxRxList;
-
-    ////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
-    // MultiSourcing variables
-
-    bool runMultiSourcing;
-    unsigned int numRunningMultiSourcingGroups;
-//   unsigned int numSourceNodes;
-
-    struct multiSourcingGroup
-    {
-        unsigned int groupIndex;
-        unsigned int multiSourcingReceiver;
-        std::set<int> multiSourcingSenders;
-    };
-    typedef std::list<multiSourcingGroup> MultiSourcingSelectedCombinations;
-    MultiSourcingSelectedCombinations multiSourcingSelectedCombinations;
-
-    struct multiSourcingGrTxRx
-    {
-        unsigned int groupIndex;
-        std::string multiSourcingReceiver;
-        std::vector<std::string> multiSourcingSenders;
-    };
-
-    typedef std::list<multiSourcingGrTxRx> MultiSourcingGrTxRxList;
-    MultiSourcingGrTxRxList multiSourcingGrTxRxList;
-
-////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////
-
-    // multicast variables
 
     virtual bool handleOperationStage(LifecycleOperation *operation, IDoneCallback *doneCallback) override
     {
@@ -215,22 +144,11 @@ protected:
     unsigned int numTimesDecodingSucceeded = 0;
 
 public:
-    CentralScheduler()
+    CentralSchedulerRaqsac()
     {
     }
-    virtual ~CentralScheduler();
+    virtual ~CentralSchedulerRaqsac();
     void getNodeRackPod(unsigned int nodeIndex, unsigned int &nodeId, unsigned int &rackId, unsigned int &podId);
-    void getMulticastGroupGivenIndex(unsigned int groupIndex, std::set<int> &multicastReceivers);
-    void getPodRackNodeForEachReceiverInMulticastGroup(std::set<int> multicastReceivers, std::set<std::string> &nodePodRackLoc);
-    void getMulticastGroupReceiversPortNumbers(unsigned int groupIndex, std::vector<int> &portNumbersVector);
-
-    void lookUpAtMulticastInfoList(unsigned int groupId, std::string currentNode, std::vector<std::string> &destinations);
-    bool isMulticastReceiver(unsigned int multicastGrIndex, std::string rx);
-    bool isMulticastSender(unsigned int multicastGrIndex, std::string tx);
-    void getMulticastGrSender(unsigned int multicastGrIndex, std::string &senderName);
-    void getMulticastGrFirstEdgeDest(unsigned int multicastGrIndex, std::string senderNode, std::string &firstEdge);
-
-    void getMultiSourcingGrReceiver(unsigned int multiSrcGrIndex, std::string &receiverName);
     double getNewValueFromExponentialDistribution();
 
 protected:
@@ -252,22 +170,6 @@ protected:
     void scheduleNewShortFlow(std::string itsSrc, std::string newDest);
 
     void permTM(const char *longOrShortFlows);
-
-    // multicast
-    void generateMulticastGroups();
-    void nChooseK(int offset, int n, int k, bool r);
-    void getNewMulticastCombination();
-    void scheduleMulticastGroupConn(unsigned int groupIndex, unsigned int senderId, std::set<int> receiversGroup, std::vector<int> &receiversPortNumbers);
-    void multicastRoutersLocation(unsigned int groupIndex, unsigned int senderId, std::set<int> receiversGroup);
-    void getUniqueVector(std::vector<std::string> &uniqueVector);
-    void removeSameConsecutiveElements(std::vector<std::string> &inVector);
-    void multicastGroupInfo(unsigned int multicastGrIndex, unsigned int senderId, std::set<int> receiversId);
-
-    // multiSourcing
-    void generateMultiSourcingGroups();
-    void getNewMultiSourcingCombination();
-    void multiSourcingGroupInfo(unsigned int multicastGrIndex, unsigned int receiverId, std::set<int> sendersId);
-    void scheduleMultiSourcingGroupConn(unsigned int groupIndex, unsigned int receiverId, std::set<int> sendersGroup, std::vector<int> &sendersPortNumbers);
 
     void scheduleIncast(unsigned int numSenders);
 

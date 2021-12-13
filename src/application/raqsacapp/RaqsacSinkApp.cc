@@ -54,8 +54,7 @@ void RaqsacSinkApp::handleMessage(cMessage *msg)
 
             RaqsacCommand *controlInfo = check_and_cast<RaqsacCommand*>(msg->getControlInfo());
             numRcvTrimmedHeader = controlInfo->getNumRcvTrimmedHeader();
-            std::string mod = "FatTree.centralScheduler";
-            cModule *centralMod = getModuleByPath(mod.c_str());
+            cModule *centralMod =  this->getParentModule()->getModuleByPath("centralScheduler");
             if (centralMod && recordStatistics == true) {
                 int numFinishedFlows = centralMod->par("numCompletedShortFlows");
                 int newNumFinishedFlows = numFinishedFlows + 1;

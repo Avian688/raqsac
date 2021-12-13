@@ -1,7 +1,7 @@
 package raqsac.simulations.FatTree;
 import inet.networklayer.contract.INetworkLayer;
 import raqsac.node.StandardHostRaqsac;
-import raqsac.common.scheduler.CentralScheduler;
+import raqsac.common.scheduler.CentralSchedulerRaqsac;
 import raqsac.base.RouterRaqsac;
 import raqsac.base.Pod;
 import raqsac.base.Rack;
@@ -62,7 +62,7 @@ network FatTree
         configurator: Ipv4NetworkConfiguratorEcmp {
             @display("p=1314.495,672.2275");
         }
-        centralScheduler: CentralScheduler {
+        centralScheduler: CentralSchedulerRaqsac {
             @display("p=704.06,601.0725;i=abstract/person,#17FF39;b=,,rect;is=vl;t=Central flow scheduler");
         }
     connections:

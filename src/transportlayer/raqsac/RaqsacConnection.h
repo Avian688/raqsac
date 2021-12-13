@@ -65,6 +65,10 @@ public:
     unsigned int internal_request_id;
 
     int IW;  //initial window size
+    int cwnd;
+    int ssthresh;
+    int receivedPacketsInWindow;
+    int sentPullsInWindow;
     bool connFinished;
     int numPacketsToGet;
     int numSymbolsToSend;
@@ -80,11 +84,15 @@ public:
     bool connNotAddedYet;
     bool isfinalReceivedPrintedOut;
     bool redoDecoding;
+
+    bool sendPulls;
 };
 
 class INET_API RaqsacConnection : public cSimpleModule
 {
 public:
+    static simsignal_t cwndSignal;
+
     struct EncodingSymbols
     {
         unsigned int ESI;
@@ -125,12 +133,12 @@ public:
     int localPort = -1;
     int remotePort = -1;
 protected:
-    Raqsac *raqsacMain = nullptr;    // SCDP module
+    Raqsac *raqsacMain = nullptr;    // RaQSac module
 
     // NDP state machine
     cFSM fsm;
 
-    // variables associated with SCDP state
+    // variables associated with RaQSac state
     RaqsacStateVariables *state = nullptr;
 public:
     virtual int getNumRcvdPackets();

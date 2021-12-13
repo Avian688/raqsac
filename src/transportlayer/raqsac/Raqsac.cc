@@ -76,8 +76,8 @@ void Raqsac::initialize(int stage)
         requestTimerMsg = new cMessage("requestTimerMsg");
         requestTimerMsg->setContextPointer(this);
 
-        registerService(Protocol::scdp, gate("appIn"), gate("ipIn"));
-        registerProtocol(Protocol::scdp, gate("ipOut"), gate("appOut"));
+        registerService(Protocol::raqsac, gate("appIn"), gate("ipIn"));
+        registerProtocol(Protocol::raqsac, gate("ipOut"), gate("appOut"));
     }
 }
 
@@ -94,6 +94,12 @@ void Raqsac::handleSelfMessage(cMessage *msg)
 {
     if (msg == requestTimerMsg) {
         process_REQUEST_TIMER();
+        if(!timerQueue.empty()){
+            if(!requestTimerMsg->isScheduled()){
+                scheduleAt(simTime() + timerQueue.front(), requestTimerMsg);
+                timerQueue.pop();
+            }
+        }
     }
     else {
         RaqsacConnection *conn = (RaqsacConnection*) msg->getContextPointer();
@@ -113,7 +119,7 @@ void Raqsac::handleUpperCommand(cMessage *msg)
         // the OPEN command in TcpConnection's processAppCommand().
         raqsacAppConnMap[socketId] = conn;
 
-        EV_INFO << "Scdp connection created for " << msg << "\n";
+        EV_INFO << "RaQSac connection created for " << msg << "\n";
     }
 
     if (!conn->processAppCommand(msg))
@@ -144,7 +150,7 @@ void Raqsac::handleLowerPacket(Packet *packet)
     EV_INFO << "Lower Packet Handled: " << packet->str() << std::endl;
     // must be a RaqsacHeader
     auto protocol = packet->getTag<PacketProtocolTag>()->getProtocol();
-    if (protocol == &Protocol::scdp) {
+    if (protocol == &Protocol::raqsac) {
         auto raqsacHeader = packet->peekAtFront<RaqsacHeader>();
         L3Address srcAddr, destAddr;
         srcAddr = packet->getTag<L3AddressInd>()->getSrcAddress();
@@ -494,9 +500,16 @@ void Raqsac::requestTimer()
     Enter_Method_Silent
     ("requestTimer");
     EV_INFO << "Timer being requested!" << endl;
-    cancelRequestTimer();
-    simtime_t requestTime = (simTime() + SimTime( PACING_TIME, SIMTIME_US)); // pacing
-    scheduleAt(requestTime, requestTimerMsg); // 0.000009
+    //cancelRequestTimer();
+    if((requestTimerMsg->getOwner() != this) || requestTimerMsg->isScheduled()){
+        simtime_t requestTime = SimTime(PACING_TIME, SIMTIME_US);
+        timerQueue.push(requestTime);
+    }
+    else{
+       simtime_t requestTime = (simTime() + SimTime( PACING_TIME, SIMTIME_US)); // pacing
+       scheduleAt(requestTime, requestTimerMsg); // 0.000009
+    }
+
 }
 
 void Raqsac::cancelRequestTimer()

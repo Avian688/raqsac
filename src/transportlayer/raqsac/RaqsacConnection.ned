@@ -20,7 +20,8 @@ simple RaqsacConnection
     parameters:
         @class("RaqsacConnection");
         @signal[state];    // FSM state
-
+		@signal[cwnd];
+		
         //NdpAlgorithm signals:
         @signal[rtt];    // will record measured RTT
         @signal[srtt];    // will record smoothed RTT

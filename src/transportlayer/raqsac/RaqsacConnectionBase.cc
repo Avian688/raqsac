@@ -12,6 +12,8 @@ namespace inet {
 namespace raqsac {
 Define_Module(RaqsacConnection);
 
+simsignal_t RaqsacConnection::cwndSignal = registerSignal("cwnd");
+
 RaqsacStateVariables::RaqsacStateVariables()
 {
     internal_request_id = 0;
@@ -25,12 +27,17 @@ RaqsacStateVariables::RaqsacStateVariables()
     numTimesDecodingFailed = 0;
     numberReceivedPackets = 0;
     numberSentPackets = 0;
-    IW = 0; // send the initial window (12 Packets as in NDP) IWWWWWWWWWWWW
+    IW = 0; // send the initial window (12 Packets as in NDP) IW
+    receivedPacketsInWindow = 0;
+    sentPullsInWindow = 0;
+    ssthresh = 0;
     connFinished = false;
     isfinalReceivedPrintedOut = false;
     numRcvdPkt = 0;
     connNotAddedYet = true;
+    cwnd = 0;
     redoDecoding = false;
+    sendPulls = true;
     active = false;
 }
 

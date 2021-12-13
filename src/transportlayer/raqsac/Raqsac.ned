@@ -5,7 +5,8 @@ import raqsac.transportlayer.contract.IRaqsac;
 simple Raqsac like IRaqsac
 {
     parameters:
-        int initialWindow = default(15);  // initialWindow size NDP-style (sender pushes IW pacakets)
+        int initialWindow = default(2);  // initialWindow size NDP-style (sender pushes IW pacakets)
+        int ssthresh = default(10);
         string raqsacAlgorithmClass = default("DumbRaqsac");
         @display("i=block/wheelbarrow");
 

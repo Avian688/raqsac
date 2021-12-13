@@ -37,6 +37,8 @@ class RaqsacHeader extends TransportHeaderBase
 	unsigned int pullSequenceNumber;
 	unsigned int ESI; //2 Bytes
 	unsigned int SBN; //2 Bytes
+	unsigned int wnd;
+	bool finBit; // FIN: end connection
     bool rstBit; // RST: reset the connection
     bool synBit; // SYN: synchronize seq. numbers
 }

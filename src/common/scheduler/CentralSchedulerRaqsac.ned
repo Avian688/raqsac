@@ -15,10 +15,10 @@
 
 package raqsac.common.scheduler;
 
-simple CentralScheduler
+simple CentralSchedulerRaqsac
 {
     parameters:
-        @class("inet::CentralScheduler");
+        @class("inet::CentralSchedulerRaqsac");
         bool isWebSearchWorkLoad;
         //  @dynamic(true);
         int kValue; // = default(4);  // FatTree size 
@@ -27,7 +27,7 @@ simple CentralScheduler
         //        int flowSize @unit(B); //= default(4);
         //        double longFlowSize @unit(B)=  default(10MiB);
         int IW; // initial windows size
-        int ndpSwitchQueueLength; // initial windows size
+        int switchQueueLength; // initial windows size
         bool perFlowEcmp;
         bool perPacketEcmp;
 
@@ -48,16 +48,6 @@ simple CentralScheduler
         bool randomGroup;
 
         bool oneToOne;
-
-        // multicast parameters 
-        int numReplica;
-        int numRunningMulticastGroups;
-        bool runMulticast;
-
-        //multiSourcing parameters
-        bool runMultiSourcing;
-        int numRunningMultiSourcingGroups;
-     //  int numSourceNodes;
 
         int numIncastSenders = default(1);
 }

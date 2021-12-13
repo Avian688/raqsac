@@ -44,7 +44,7 @@ module TransportLayerNodeBaseEcmp extends NetworkLayerNodeBaseEcmp
             parameters:
                 @display("p=675,226");
         }
-        raqsac: <default(firstAvailableOrEmpty("Scdp"))> like IRaqsac if hasRaqsac {
+        raqsac: <default(firstAvailableOrEmpty("Raqsac"))> like IRaqsac if hasRaqsac {
             @display("p=573,140;i=abstract/penguin");
         }
         tn: MessageDispatcher {

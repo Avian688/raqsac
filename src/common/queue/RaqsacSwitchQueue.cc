@@ -128,6 +128,8 @@ void RaqsacSwitchQueue::pushPacket(Packet *packet, cGate *gate)
     EV_INFO << "Pushing packet " << packet->getName() << " into the queue." << endl;
     const auto& ipv4Datagram = packet->peekAtFront<Ipv4Header>();
     const auto& raqsacHeaderPeek = packet->peekDataAt<raqsac::RaqsacHeader>(ipv4Datagram->getChunkLength());
+    std::hash<std::string> hash;
+    std::string key = ipv4Datagram->getSrcAddress().str() + ipv4Datagram->getDestAddress().str() + std::to_string(raqsacHeaderPeek->getSrcPort())+ std::to_string(raqsacHeaderPeek->getDestPort());
     if (raqsacHeaderPeek->getSynBit() == true) {
        synAckQueue.insert(packet);
        synAckQueueLength=synAckQueue.getLength();
@@ -225,8 +227,8 @@ void RaqsacSwitchQueue::trimPacket(Packet* packet)
     headersQueue.insert(packet);
     headersQueueLength=headersQueue.getLength();
     ++numTrimmedPkt;
-    numTrimmedPacketsVec.record(numTrimmedPkt);
-    cSimpleModule::emit(numTrimmedPktSig, numTrimmedPkt);
+    //numTrimmedPacketsVec.record(numTrimmedPkt);
+    //cSimpleModule::emit(numTrimmedPktSig, numTrimmedPkt);
     return;
 }
 Packet *RaqsacSwitchQueue::popPacket(cGate *gate) {

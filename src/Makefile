@@ -31,7 +31,8 @@ OBJS = \
     $O/common/ResultFiltersThroughput.o \
     $O/common/TopologyEcmp.o \
     $O/common/queue/RaqsacSwitchQueue.o \
-    $O/common/scheduler/CentralScheduler.o \
+    $O/common/queue/RaqsacSwitchQueueController.o \
+    $O/common/scheduler/CentralSchedulerRaqsac.o \
     $O/transportlayer/common/L4ToolsRaqsac.o \
     $O/transportlayer/contract/raqsac/RaqsacSocket.o \
     $O/transportlayer/raqsac/Raqsac.o \

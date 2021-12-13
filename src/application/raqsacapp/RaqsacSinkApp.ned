@@ -18,7 +18,7 @@ simple RaqsacSinkApp like IApp
         @statistic[numRcvTrimmedHeaderSig](title="numRcvTrimmedHeader"; source=numRcvTrimmedHeaderSig; unit=s; record=last);
 
         @signal[fctRecordv3](type=double);
-        @statistic[fctRecordv3](title="Scdp Session's flow completion time"; source=fctRecordv3; unit=s; record=last);
+        @statistic[fctRecordv3](title="RaQSac Session's flow completion time"; source=fctRecordv3; unit=s; record=last);
 
         @signal[packetReceived](type=inet::Packet);
         @statistic[packetReceived](title="packets (symbols) received"; source=packetReceived; record=count,"sum(packetBytes)","vector(packetBytes)"; interpolationmode=none);

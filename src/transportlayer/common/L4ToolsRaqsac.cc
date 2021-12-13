@@ -36,7 +36,7 @@ bool isTransportProtocol(const Protocol& protocol)
     return
             (protocol == Protocol::tcp)
             || (protocol == Protocol::udp)
-            || (protocol == Protocol::scdp)
+            || (protocol == Protocol::raqsac)
             // TODO: add other L4 protocols
             ;
 }
@@ -51,7 +51,7 @@ const Ptr<const TransportHeaderBase> peekTransportProtocolHeader(Packet *packet,
     if (protocol == Protocol::udp)
         return packet->peekAtFront<UdpHeader>(b(-1), flags);
 #endif
-    if (protocol == Protocol::scdp)
+    if (protocol == Protocol::raqsac)
         return packet->peekAtFront<raqsac::RaqsacHeader>(b(-1), flags);
     // TODO: add other L4 protocols
     if (flags & Chunk::PF_ALLOW_NULLPTR)
@@ -70,7 +70,7 @@ const Ptr<TransportHeaderBase> removeTransportProtocolHeader(Packet *packet, con
     if (protocol == Protocol::udp)
         return removeTransportProtocolHeader<UdpHeader>(packet);
 #endif
-    if (protocol == Protocol::scdp)
+    if (protocol == Protocol::raqsac)
         return removeTransportProtocolHeader<raqsac::RaqsacHeader>(packet);
     // TODO: add other L4 protocols
     throw cRuntimeError("Unknown protocol: %s", protocol.getName());

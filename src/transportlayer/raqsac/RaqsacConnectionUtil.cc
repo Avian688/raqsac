@@ -153,8 +153,10 @@ void RaqsacConnection::initConnection(RaqsacOpenCommand *openCmd)
 void RaqsacConnection::configureStateVariables()
 {
     state->IW = raqsacMain->par("initialWindow");
+    state->ssthresh = raqsacMain->par("ssthresh");
+    state->cwnd = state->IW;
+    state->sentPullsInWindow = state->IW;
     raqsacMain->recordScalar("initialWindow=", state->IW);
-
 }
 
 void RaqsacConnection::printConnBrief() const

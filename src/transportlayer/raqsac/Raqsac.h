@@ -21,6 +21,7 @@
 
 #include <map>
 #include <set>
+#include <queue>
 
 #include <inet/common/INETDefs.h>
 #include <inet/common/lifecycle/ModuleOperations.h>
@@ -66,20 +67,8 @@ public:
                 return localPort < b.localPort;
         }
     };
-    struct SockPairMulticast
-    {
-        L3Address localAddr;
-        int localPort;    // -1: unspec
-        int multicastGid;    // multicast group id
-        inline bool operator<(const SockPairMulticast &b) const
-        {
-            if (localAddr != b.localAddr)
-                return localAddr < b.localAddr;
-            else
-                return localPort < b.localPort;
-        }
-    };
     cMessage *requestTimerMsg = nullptr;
+    std::queue<simtime_t> timerQueue;
 
     std::map<int, int> appGateIndexTimeOutMap; // moh: contains num of timeouts for each app
     bool test = true;

@@ -25,6 +25,10 @@ struct RaqsacStateVariables
     unsigned int request_id;
     unsigned int internal_request_id;
     uint32 IW;
+    uint32 cwnd;
+    uint32 ssthresh;
+    uint32 receivedPacketsInWindow;
+    uint32 sentPullsInWindow;
     bool connFinished;
     uint32 numPacketsToGet;
     uint32 numSymbolsToSend;
